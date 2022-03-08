@@ -4,6 +4,9 @@
   "main": "index.js",
   "author": "andyphl",
   "license": "MIT",
+  "scripts": {
+    "dev": "env NODE_ENV=development nodemon src/app.js"
+  },
   "dependencies": {
     "cors": "^2.8.5",
     "express": "^4.17.3",
