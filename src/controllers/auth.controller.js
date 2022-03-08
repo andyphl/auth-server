@@ -38,7 +38,7 @@ exports.signIn = async (req, res, next) => {
       where: {
         email,
       },
-      attributes: { exclude: ["password", "id"] },
+      attributes: { exclude: ["id"] },
       raw: true,
     });
     if (user && (await bcrypt.compare(password, user.password))) {
@@ -49,7 +49,10 @@ exports.signIn = async (req, res, next) => {
       ]);
       return res.status(200).json({
         message: "Signin successfully",
-
+        user: {
+          ...user,
+          password: undefined,
+        },
         token: generateAccessToken(user.uuid),
       });
     }
