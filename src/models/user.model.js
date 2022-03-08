@@ -30,8 +30,7 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.STRING,
         allowNull: false,
         validate: {
-          notNull: { msg: "Username cannot be null" },
-          notEmpty: { msg: "Username cannot be empty" },
+          notNull: { msg: "Email cannot be null" },
           len: {
             msg: "User can only be 2 to 30 characters",
             args: [2, 30],
@@ -41,10 +40,10 @@ module.exports = (sequelize, DataTypes) => {
       email: {
         type: DataTypes.STRING,
         allowNull: false,
+        unique: { msg: "Email has been used", args: true },
         validate: {
           notNull: { msg: "Email cannot be null" },
-          notEmpty: { msg: "Email cannot be empty" },
-          isEmail: { msg: "These must be an email" },
+          isEmail: { msg: "Incorrect email format" },
         },
       },
       password: {
