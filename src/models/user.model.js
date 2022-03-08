@@ -9,7 +9,6 @@ module.exports = (sequelize, DataTypes) => {
      */
     static associate(models) {
       // define association here
-      this.hasMany(User, { foreignKey: "userId", as: "friends" });
     }
 
     toJSON() {
@@ -24,15 +23,16 @@ module.exports = (sequelize, DataTypes) => {
       uuid: {
         type: DataTypes.UUID,
         defaultValue: DataTypes.UUIDV4,
+        allowNull: false,
+        unique: true,
       },
       username: {
         type: DataTypes.STRING,
         allowNull: false,
         validate: {
-          notNull: { message: "Username cannot be null" },
-          notEmpty: { message: "Username cannot be empty" },
+          notNull: { msg: "Email cannot be null" },
           len: {
-            message: "User can only be 2 to 30 characters",
+            msg: "User can only be 2 to 30 characters",
             args: [2, 30],
           },
         },
@@ -40,26 +40,26 @@ module.exports = (sequelize, DataTypes) => {
       email: {
         type: DataTypes.STRING,
         allowNull: false,
+        unique: { msg: "Email has been used", args: true },
         validate: {
-          notNull: { message: "Email cannot be null" },
-          notEmpty: { message: "Email cannot be empty" },
-          isEmail: { message: "These must be an email" },
+          notNull: { msg: "Email cannot be null" },
+          isEmail: { msg: "Incorrect email format" },
         },
       },
       password: {
         type: DataTypes.STRING,
         allowNull: false,
         validate: {
-          notNull: { message: "Paswword cannot be null" },
-          notEmpty: { message: "Paswword cannot be empty" },
+          notNull: { msg: "Paswword cannot be null" },
+          notEmpty: { msg: "Paswword cannot be empty" },
         },
       },
       role: {
         type: DataTypes.STRING,
         allowNull: false,
         validate: {
-          notNull: { message: "Role cannot be null" },
-          notEmpty: { message: "Role cannot be empty" },
+          notNull: { msg: "Role cannot be null" },
+          notEmpty: { msg: "Role cannot be empty" },
         },
       },
     },
