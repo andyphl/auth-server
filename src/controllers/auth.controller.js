@@ -16,7 +16,7 @@ exports.signUp = async (req, res, next) => {
     });
 
     res.setHeader("set-cookie", [
-      `token=${generateRefreshToken(user.uuid)}; httpOnly; samesite=lax`,
+      `token=${generateRefreshToken(user.uuid)}; httpOnly;`,
     ]);
     return res.status(201).json({
       message: "Signup success",
@@ -24,7 +24,6 @@ exports.signUp = async (req, res, next) => {
       token: generateAccessToken(user.uuid),
     });
   } catch (error) {
-    console.log(error.message);
     return res.status(400).json({
       message: error.message,
       error,
@@ -44,9 +43,7 @@ exports.signIn = async (req, res, next) => {
     });
     if (user && (await bcrypt.compare(password, user.password))) {
       res.setHeader("set-cookie", [
-        `refresh_token=${generateRefreshToken(
-          user.uuid
-        )}; httpOnly; samesite=lax`,
+        `refresh_token=${generateRefreshToken(user.uuid)}; httpOnly;`,
       ]);
       return res.status(200).json({
         message: "Signin successfully",
