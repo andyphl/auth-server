@@ -1,4 +1,4 @@
-const { sequelize, User } = require("../models");
+const { User } = require("../models");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 require("dotenv").config();
@@ -15,13 +15,8 @@ exports.signUp = async (req, res, next) => {
       role: "standard",
     });
 
-    res.setHeader("set-cookie", [
-      `token=${generateRefreshToken(user.uuid)}; httpOnly;`,
-    ]);
     return res.status(201).json({
       message: "Signup success",
-      user,
-      token: generateAccessToken(user.uuid),
     });
   } catch (error) {
     return res.status(400).json({
@@ -33,52 +28,71 @@ exports.signUp = async (req, res, next) => {
 
 exports.signIn = async (req, res, next) => {
   const { email, password } = req.body;
-  try {
-    const user = await User.findOne({
-      where: {
-        email,
-      },
-      attributes: { exclude: ["id"] },
-      raw: true,
-    });
-    if (user && (await bcrypt.compare(password, user.password))) {
-      res.setHeader("set-cookie", [
-        `refresh_token=${generateRefreshToken(user.uuid)}; httpOnly;`,
-      ]);
-      return res.status(200).json({
-        message: "Signin successfully",
-        user: {
-          ...user,
-          password: undefined,
-        },
-        token: generateAccessToken(user.uuid),
-      });
-    }
-
-    return res.status(401).json({
-      message: "Incorrect username or password, please try again",
-    });
-  } catch (error) {
+  if (!email || !password)
     return res.status(400).json({
-      message: "Failed to signin",
-      error,
+      message: "Email and password are required",
+    });
+
+  const user = await User.findOne({
+    where: {
+      email,
+    },
+  });
+
+  if (user && (await bcrypt.compare(password, user.password))) {
+    const refresh_token = generateRefreshToken(user.uuid);
+
+    user.refresh_token = refresh_token;
+    await user.save();
+
+    res.cookie("refresh_token", refresh_token, {
+      httpOnly: true,
+      maxAge: 24 * 60 * 60 * 1000,
+    });
+
+    return res.status(200).json({
+      message: "Signin successfully",
+      user: {
+        ...user.dataValues,
+        id: undefined,
+        password: undefined,
+      },
+      token: generateAccessToken(user.uuid),
     });
   }
+
+  return res.status(401).json({
+    message: "Incorrect email or password, please try again",
+  });
 };
 
 exports.refreshToken = async (req, res, next) => {
-  try {
-    const { refresh_token } = req.cookies;
-    if (!refresh_token) {
-      return res.status(401).json({
-        message: "Not authenticated",
-      });
-    }
+  const { refresh_token } = req.cookies;
+  if (!refresh_token) {
+    return res.status(401).json({
+      message: "Not authenticated",
+    });
+  }
 
+  const user = await User.findOne({
+    where: {
+      refresh_token,
+    },
+  });
+
+  if (!user) {
+    return res.sendStatus(403);
+  }
+
+  try {
     const decode = jwt.verify(
       refresh_token,
       process.env.JWT_REFRESH_TOKEN_SECRET
     );
+
+    if (decode.uuid !== user.uuid) {
+      return res.sendStatus(403);
+    }
 
     // TODO: Rotate refresh token & blacklist previous refresh token
     res.status(200).send({
@@ -86,18 +100,40 @@ exports.refreshToken = async (req, res, next) => {
       token: generateAccessToken(decode.uuid),
     });
   } catch (error) {
-    return res.status(401).json({
-      message: "Not authenticated",
-    });
+    return res.sendStatus(403);
   }
 };
 
 exports.signout = async (req, res, next) => {
-  res.setHeader("set-cookie", [`refresh_token=; httpOnly;`]);
+  const { refresh_token } = req.cookies;
+  if (!refresh_token) {
+    return res.sendStatus(204);
+  }
 
-  return res.status(200).send({
-    message: "Logout successfully",
+  const user = await User.findOne({
+    where: {
+      refresh_token,
+    },
   });
+
+  if (!user) {
+    res.clearCookie("refresh_token", {
+      httpOnly: true,
+      maxAge: 24 * 60 * 60 * 1000,
+    });
+
+    return res.sendStatus(204);
+  }
+
+  user.refresh_token = null;
+  await user.save();
+
+  res.clearCookie("refresh_token", {
+    httpOnly: true,
+    maxAge: 24 * 60 * 60 * 1000,
+  });
+
+  return res.status(204);
 };
 
 exports.protected = async (req, res, next) => {
