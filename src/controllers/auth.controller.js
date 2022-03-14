@@ -19,9 +19,23 @@ exports.signUp = async (req, res, next) => {
       message: "Signup success",
     });
   } catch (error) {
-    return res.status(400).json({
+    // Handle sequelize message
+    const sequelizeValidationError = error?.errors[0];
+    if (sequelizeValidationError) {
+      switch (sequelizeValidationError.type) {
+        case "unique violation":
+          // Conflict
+          return res.status(409).json({
+            message: sequelizeValidationError.message,
+          });
+        default:
+          return res.status(400).json({
+            message: sequelizeValidationError.message,
+          });
+      }
+    }
+    return res.status(500).json({
       message: error.message,
-      error,
     });
   }
 };
@@ -133,7 +147,7 @@ exports.signout = async (req, res, next) => {
     maxAge: 24 * 60 * 60 * 1000,
   });
 
-  return res.status(204);
+  return res.sendStatus(204);
 };
 
 exports.protected = async (req, res, next) => {
