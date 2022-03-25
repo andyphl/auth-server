@@ -62,6 +62,9 @@ module.exports = (sequelize, DataTypes) => {
           notEmpty: { msg: "Role cannot be empty" },
         },
       },
+      refresh_token: {
+        type: DataTypes.STRING,
+      },
     },
     {
       sequelize,
